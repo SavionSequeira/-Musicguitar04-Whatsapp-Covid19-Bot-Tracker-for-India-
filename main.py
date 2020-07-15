@@ -1,0 +1,57 @@
+from flask import Flask, request
+from twilio.twiml.messaging_response import MessagingResponse
+import requests
+import json
+
+
+app = Flask(__name__)
+
+@app.route("/")
+def hello():
+    return "Hello, World!"
+
+@app.route("/sms", methods=['POST'])
+def sms_reply():
+    """Respond to incoming calls with a simple text message."""
+    # Fetch the message
+    msg = request.form.get('Body')
+    
+    # Create reply
+    resp = MessagingResponse()
+    url = "https://api.covid19india.org/data.json"
+    r = requests.get(url)
+    json_data = r.json()
+    json_statewise = json_data['statewise']
+    json_cases_time = json_data['cases_time_series']
+    for state in json_statewise:
+        if msg == state['statecode']:
+             resp.message("State : {} \nActive : {} \nConfirmed : {} \nDeaths : {} \nRecovered : {} \nLastUpdateTime : {} " .format(state['state'],state['active'],state['confirmed'],state['deaths'],state['recovered'],state['lastupdatedtime']))
+       
+    for date in json_cases_time:
+        nostripdate= date['date']
+        stripdate = nostripdate.strip()
+        if msg == stripdate:
+            resp.message("Daily Confirmed : {} \nDaily Recovered: {} \nDaily Deceased: {} \nTotal Confirmed : {} \nTotal Recovered: {} \nTotal Deceased: {}".format(date['dailyconfirmed'],date['dailyrecovered'],date['dailydeceased'],date['totalconfirmed'],date['totalrecovered'],date['totaldeceased']))
+         
+
+
+    if msg == 'help' or msg == 'Help':
+        resp.message("Welcome to Covid19 tracker by Savion.\nYou can check data state and day wise.To check statewise type any states code in UPPERCASE, like KA.\nTo check date wise, type any date in the following format: 05 April.\n The date should be two digits and the month should have the first letter in UpperCase.\n Thank You.")
+   
+
+    return str(resp)
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+
+
+
+
+
+ 
+
+
+
+
+
